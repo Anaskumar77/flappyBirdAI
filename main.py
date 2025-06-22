@@ -1,9 +1,11 @@
-import pygame ,os, sys ,neat
+import pygame ,os, sys ,neat, random
 
 WIN_WIDTH = 500
 WIN_HEIGHT = 800
-BIRDS = [pygame.image.load(os.path.join("imgs","bird1.png")),pygame.image.load(os.path.join("imgs","bird2.png")),pygame.image.load(os.path.join("imgs","bird3.png"))]
-
+BIRDS = [pygame.transform.scale2x(pygame.image.load(os.path.join("imgs","bird1.png"))),
+         pygame.transform.scale2x(pygame.image.load(os.path.join("imgs","bird2.png"))),
+         pygame.transform.scale2x(pygame.image.load(os.path.join("imgs","bird3.png")))]
+PIPE = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs","pipe.png")))
 win  = pygame.display.set_mode((WIN_WIDTH,WIN_HEIGHT))
 
 class Bird:
@@ -41,15 +43,41 @@ class Bird:
             self.animation_frame = 0
 
         self.move()
-        self.jump()
 
         win.blit(self.img,(self.x, self.y))
-        
-        
+
+class Pipe:
+    PIPE_GAP = 300
+    VELOCITY = 5
+    PIPE_TOP = pygame.transform.rotate(PIPE,180)
+    PIPE_BOTTOM = PIPE
+
+    def __init__(self,x):
+        self.x_top = x                            # top pipe bottom left corner x axis
+        self.x_bottom = self.x_top
+        self.y_top = random.randrange(50,500) - PIPE.get_height()                  
+        self.y_bottom = self.y_top + self.PIPE_GAP + PIPE.get_height()
+
+    def move(self):
+        self.x_top -= self.VELOCITY
+        self.x_bottom -= self.VELOCITY
+
+    def draw(self):
+        win.blit(self.PIPE_TOP,(self.x_top,self.y_top))
+        win.blit(self.PIPE_BOTTOM,(self.x_bottom,self.y_bottom))
+
         
 
-def draw_canvas(bird):
+        
+
+        
+
+def draw_canvas(bird,pipes):
+
     win.fill((0,0,0))
+    for pipe in pipes:
+        Pipe.draw(pipe)
+
 
     Bird.draw(bird)
     
@@ -62,7 +90,8 @@ def main():
     running = True
     
     bird = Bird(200,200)
-
+    pipes = [Pipe(200),Pipe(400)]
+    
     clock = pygame.time.Clock()
 
     while running:
@@ -74,23 +103,20 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
 
-        draw_canvas(bird)
 
         keys = pygame.key.get_pressed()
         if keys[pygame.K_UP]:
             bird.jump()
 
+        for pipe in pipes:
+            pipe.move()
+            
         bird.move()
-        
-        pygame
-        
+        draw_canvas(bird,pipes)
         pygame.display.update()  
     
     pygame.quit()
     sys.exit()
-
-
-
 
 if __name__ == "__main__":
     main()
