@@ -6,6 +6,7 @@ BIRDS = [pygame.transform.scale2x(pygame.image.load(os.path.join("imgs","bird1.p
          pygame.transform.scale2x(pygame.image.load(os.path.join("imgs","bird2.png"))),
          pygame.transform.scale2x(pygame.image.load(os.path.join("imgs","bird3.png")))]
 PIPE = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs","pipe.png")))
+BASE = pygame.image.load(os.path.join('imgs','base.png'))
 win  = pygame.display.set_mode((WIN_WIDTH,WIN_HEIGHT))
 
 class Bird:
@@ -51,6 +52,37 @@ class Bird:
 
         win.blit(self.img,(self.x, self.y))
 
+class Base:
+    Y_TOP = 700
+    VELOCITY = 5
+    WIDTH = BASE.get_width()
+    base = pygame.transform.scale(BASE, (500,BASE.get_height()))
+
+
+
+    def __init__(self,x):
+        self.x1 = x 
+        self.x2 = self.x1 + self.WIDTH
+
+        
+    def move(self):
+        self.x1 -= self.VELOCITY
+        self.x2 -= self.VELOCITY
+
+        if self.x1 + self.WIDTH < 0:
+            self.x1 = self.x2 + self.WIDTH
+
+        if self.x2 + self.WIDTH < 0:
+            self.x2 = self.x1 + self.WIDTH
+        
+
+    def draw(self):
+        win.blit(self.base,(self.x1,self.Y_TOP))
+        win.blit(self.base,(self.x2,self.Y_TOP))
+        
+        
+
+
 class Pipe:
     PIPE_GAP = 200
     VELOCITY = 5
@@ -93,7 +125,7 @@ class Pipe:
         win.blit(self.PIPE_BOTTOM,(self.x_bottom,self.y_bottom))
 
 
-def draw_canvas(bird,pipes):
+def draw_canvas(bird,pipes,base):
 
     win.fill((0,0,0))
     for pipe in pipes:
@@ -101,6 +133,7 @@ def draw_canvas(bird,pipes):
 
 
     Bird.draw(bird)
+    Base.draw(base)
     
 
 
@@ -112,6 +145,8 @@ def main():
     bird = Bird(200,200)
     pipes = [Pipe(600)]
     pipe_distance = 100
+    base = Base(0)              # frames per second 
+
     
     clock = pygame.time.Clock()
 
@@ -119,7 +154,7 @@ def main():
 
     while running:
 
-        clock.tick(30)               # frames per second 
+        clock.tick(30)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -159,7 +194,8 @@ def main():
 
 
         bird.move()
-        draw_canvas(bird,pipes)
+        base.move()
+        draw_canvas(bird,pipes,base)
         pygame.display.update()  
     
     pygame.quit()
