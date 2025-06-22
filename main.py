@@ -9,11 +9,10 @@ PIPE = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs","pipe.png"
 win  = pygame.display.set_mode((WIN_WIDTH,WIN_HEIGHT))
 
 class Bird:
+
     VELOCITY = -10
     MAX_ROTATION = 35
     
-
-
     def __init__(self,x,y):
         self.x = x
         self.y = y
@@ -31,13 +30,19 @@ class Bird:
 
     def move(self):
         self.tick_count += 1
-        self.y += self.tick_count * ( 0.1)  # acceleration 
+        self.y += self.tick_count * ( 0.1)          # acceleration 
+
+    def move_right(self):
+        self.x += 1
+
+    def get_mask(self):
+        return pygame.mask.from_surface(self.img)
 
     def draw(self):
         # self.tick_count += 1
         self.animation_frame += 1
 
-        if self.animation_frame >= 5:        # animating each frame
+        if self.animation_frame >= 5:               # animating each frame
             self.bird_index = (self.bird_index + 1) % len(BIRDS)
             self.img = BIRDS[self.bird_index]   
             self.animation_frame = 0
@@ -47,30 +52,46 @@ class Bird:
         win.blit(self.img,(self.x, self.y))
 
 class Pipe:
-    PIPE_GAP = 300
+    PIPE_GAP = 200
     VELOCITY = 5
     PIPE_TOP = pygame.transform.rotate(PIPE,180)
     PIPE_BOTTOM = PIPE
 
+
     def __init__(self,x):
-        self.x_top = x                            # top pipe bottom left corner x axis
+        self.x_top = x                               
         self.x_bottom = self.x_top
-        self.y_top = random.randrange(50,500) - PIPE.get_height()                  
-        self.y_bottom = self.y_top + self.PIPE_GAP + PIPE.get_height()
+        self.y_top = random.randrange(50,500) - PIPE.get_height()                
+        self.y_bottom = self.y_top + self.PIPE_GAP + PIPE.get_height()   
+        self.passed = False    
+
 
     def move(self):
         self.x_top -= self.VELOCITY
         self.x_bottom -= self.VELOCITY
 
+    def collition(self, bird):
+        top_mask = pygame.mask.from_surface(self.PIPE_TOP)
+        bottom_mask = pygame.mask.from_surface(self.PIPE_BOTTOM)
+        bird_mask = bird.get_mask()  
+
+        top_offset = (self.x_top - bird.x, self.y_top - round(bird.y))
+        bottom_offset = (self.x_bottom- bird.x, self.y_bottom - round(bird.y))
+
+        collide_top = bird_mask.overlap(top_mask, top_offset)
+        collide_bottom = bird_mask.overlap(bottom_mask, bottom_offset)
+
+        if collide_top or collide_bottom:
+            return True  # Optional, so you can use it in `if pipe.collition(bird)`
+        
+        return False
+
+
+        
     def draw(self):
         win.blit(self.PIPE_TOP,(self.x_top,self.y_top))
         win.blit(self.PIPE_BOTTOM,(self.x_bottom,self.y_bottom))
 
-        
-
-        
-
-        
 
 def draw_canvas(bird,pipes):
 
@@ -88,16 +109,17 @@ pygame.init()
 def main():
     
     running = True
-    
     bird = Bird(200,200)
-    pipes = [Pipe(200),Pipe(400)]
+    pipes = [Pipe(600)]
+    pipe_distance = 100
     
     clock = pygame.time.Clock()
 
+    current_pipe_index = 0
+
     while running:
 
-        clock.tick(30)
-
+        clock.tick(30)               # frames per second 
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -108,9 +130,34 @@ def main():
         if keys[pygame.K_UP]:
             bird.jump()
 
+        if keys[pygame.K_RIGHT]:
+            bird.move_right()
+
+
+        add_pipe = False
+        remove_pipes = []
+
         for pipe in pipes:
-            pipe.move()
+            if pipe.x_top + pipe.PIPE_TOP.get_width() < 0:
+                remove_pipes.append(pipe)
+
+            if not pipe.passed and bird.x > pipe.x_top:
+                pipe.passed = True
+                add_pipe = True
             
+            pipe.move()
+            if(pipe.collition(bird)):
+                print("collition")
+                # give negative points
+
+
+        if add_pipe:
+            pipes.append(Pipe(600))  # new pipe from right
+
+        for r in remove_pipes:
+            pipes.remove(r)
+
+
         bird.move()
         draw_canvas(bird,pipes)
         pygame.display.update()  
