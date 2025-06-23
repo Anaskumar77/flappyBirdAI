@@ -142,7 +142,7 @@ def main(genomes,config):
     nets = []
 
     for genomeId , genome in genomes:
-        net = neat.nn.FeedForwardNetwork.creat(genome,config)
+        net = neat.nn.FeedForwardNetwork.create(genome,config)
         nets.append(net)
 
     clock = pygame.time.Clock()
