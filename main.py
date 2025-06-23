@@ -184,9 +184,11 @@ def main(genomes,config):
                 bird.jump()
 
         for pipe in pipes:
+
             pipe.move()
 
             for id ,bird in enumerate(birds):
+
                 if pipe.x_top + pipe.PIPE_TOP.get_width() < 0:
                     remove_pipes.append(pipe)
 
