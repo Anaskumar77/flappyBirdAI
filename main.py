@@ -9,7 +9,7 @@ PIPE = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs","pipe.png"
 BASE = pygame.image.load(os.path.join('imgs','base.png'))
 BG = pygame.transform.scale(pygame.image.load(os.path.join("imgs","bg.png")),(500,800))
 win  = pygame.display.set_mode((WIN_WIDTH,WIN_HEIGHT))
-
+GEN = 0
 class Bird:
 
     VELOCITY = -10
@@ -20,31 +20,27 @@ class Bird:
         self.y = y
         self.tick_count = 0
         self.velocity = 0
+        self.gravity = 1.3
         self.bird_index = 0
         self.imgs = BIRDS
         self.animation_frame = 0
         self.img = self.imgs[0]
 
     def jump(self):
-        self.tick_count = 0
-
-        self.y -= 15
+        self.velocity = -12
 
     def move(self):
-        self.tick_count += 1
-        self.y += self.tick_count * ( 0.1)          # acceleration 
+        self.velocity += self.gravity                  # acceleration 
+        self.y += self.velocity
 
-    def move_right(self):
-        self.x += 1
 
     def get_mask(self):
         return pygame.mask.from_surface(self.img)
 
     def draw(self):
-        # self.tick_count += 1
         self.animation_frame += 1
 
-        if self.animation_frame >= 5:               # animating each frame
+        if self.animation_frame >= 5:                   # animating each frame
             self.bird_index = (self.bird_index + 1) % len(BIRDS)
             self.img = BIRDS[self.bird_index]   
             self.animation_frame = 0
@@ -78,7 +74,7 @@ class Base:
         win.blit(self.base,(self.x2,self.Y_TOP))
         
 class Pipe:
-    PIPE_GAP = 200
+    PIPE_GAP = 110
     VELOCITY = 5
     PIPE_TOP = pygame.transform.rotate(PIPE,180)
     PIPE_BOTTOM = PIPE
@@ -86,7 +82,7 @@ class Pipe:
     def __init__(self,x):
         self.x_top = x                               
         self.x_bottom = self.x_top
-        self.y_top = random.randrange(50,400) - PIPE.get_height()     # top_pipe top height    
+        self.y_top = random.randrange(100,500) - PIPE.get_height()     # top_pipe top height    
         self.top_edge =  self.y_top + PIPE.get_height()                # top pipe bottom height
         self.y_bottom = self.y_top + self.PIPE_GAP + PIPE.get_height()    # bottom pipe top height
         self.passed = False    
@@ -107,7 +103,7 @@ class Pipe:
         collide_bottom = bird_mask.overlap(bottom_mask, bottom_offset)
 
         if collide_top or collide_bottom:
-            return True  # Optional, so you can use it in `if pipe.collition(bird)`
+            return True 
         
         return False
         
@@ -128,44 +124,106 @@ def draw_canvas(birds,pipes,base):
     Base.draw(base)
     
 
-def dataVisualization():
-    data_canvas = pygame.Surface((500, 800))
-    data_canvas.fill((30,30,30))
+def dataVisualization(birds,best):
+    canvas = pygame.Surface((500, 800),pygame.SRCALPHA)
+
+    height = canvas.get_height()
+    width = canvas.get_width()
+    top_color = (21,21,32)
+    bottom_color =(36, 39, 49)
+
+    for y in range(height):
+        rotation = y / height
+        r = int(top_color[0] * (1 - rotation) + bottom_color[0] * rotation)
+        g = int(top_color[1] * (1 - rotation) + bottom_color[1] * rotation)
+        b = int(top_color[2] * (1 - rotation) + bottom_color[2] * rotation)
+        pygame.draw.line(canvas, (r, g, b), (0, y), (width, y))
+    
+    # canvas.fill((40,43,44))
+
+    data_canvas = pygame.Surface((500, 800),pygame.SRCALPHA)
+
+    weight_links = pygame.Surface((200,3), pygame.SRCALPHA)
+    weight_links.fill((255,255,255))
+
+    divs = pygame.Surface((450,50))
+    divs.fill((37,37,56))
+
+    rotated_surf1 = pygame.transform.rotate(weight_links, -30)
+    rotated_surf2 = pygame.transform.rotate(weight_links, 30)
+    
+    font = pygame.font.SysFont("consolas", 24)
+    text_surface = font.render("FLAPPY", True, (255, 255, 255))
+
+
+
+  
+    data_canvas.blit(rotated_surf1,(150,300))
+    data_canvas.blit(weight_links,(150,400))
+    data_canvas.blit(rotated_surf2,(150,400))
+
+    data_canvas.blit(divs,(25,25))
+    data_canvas.blit(divs,(25,100))
+    data_canvas.blit(divs,(25,175))
+
+    pygame.draw.circle(data_canvas, (130, 57, 255), (150, 300), 32)
+    pygame.draw.circle(data_canvas, (206, 93, 255), (150, 400), 32)
+    pygame.draw.circle(data_canvas, (255, 81, 81), (150, 500), 32)
+    pygame.draw.circle(data_canvas, (147, 235, 65), (350, 400), 32)
+
+    
+    win.blit(canvas,(500,0))
     win.blit(data_canvas,(500,0))
+
+
+
+    no_of_birds = len(birds)
+    
+    # for conn_key, conn in best.connections.items():
+    #     print(f"Connection from {conn_key[0]} to {conn_key[1]} has weight: {conn.weight}")
+
+    # for node_key, node in best.nodes.items():
+    #     print(f"Node {node_key} bias: {node.bias}, activation: {node.activation}")
+
 
 pygame.init()
 
 def main(genomes,config):
     
+    PIPE_DIFF = 540
     running = True
-    pipes = [Pipe(600)]
-    pipe_distance = 100
+    pipes = [Pipe(PIPE_DIFF)]
     base = Base(0)
 
     nets = []
     birds= []
     gene = [] 
+    best = None;
+
     for genome_id, genome in genomes:
-        # genome.fitness = 4.0
         net = neat.nn.FeedForwardNetwork.create(genome, config)
         nets.append(net)
         birds.append(Bird(250,400))
         genome.fitness = 0
         gene.append(genome)
 
+        if best is None or genome.fitness > best.fitness:
+            best = genome
 
+    for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+                pygame.quit()
+                quit()
 
     clock = pygame.time.Clock()
 
     while running  and len(birds) > 0:
+        global GEN
+        GEN += 1
 
         clock.tick(30)     # frames per second 
-        
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-
+                
         add_pipe = False
         remove_pipes = []
         dead_birds =[]
@@ -197,8 +255,7 @@ def main(genomes,config):
                     add_pipe = True
                     gene[id].fitness += 5
                 
-                if(pipe.collition(bird)) or bird.y < 0 or bird.y > 700:
-                    print(birds,"\n",bird)
+                if(pipe.collition(bird)) or (bird.y + bird.img.get_width()) < 0 or bird.y > 700:
                     dead_birds.append(id)
                     gene[id].fitness -= 5
 
@@ -208,7 +265,7 @@ def main(genomes,config):
             gene.pop(i)         
 
         if add_pipe:
-            pipes.append(Pipe(500))  # new pipe from right
+            pipes.append(Pipe(PIPE_DIFF))  # new pipe from right
 
         for r in remove_pipes:
             if r in pipes:
@@ -216,12 +273,13 @@ def main(genomes,config):
 
         base.move()
 
-        draw_canvas(birds,pipes,base)
-        dataVisualization()
+    
+        draw_canvas(birds,pipes,base,)
+        dataVisualization(birds,best)
+
         pygame.display.update()  
     
     return
-
 
 def run():
 
@@ -235,17 +293,16 @@ def run():
        # Create the population, which is the top-level object for a NEAT run.
     p = neat.Population(config)
 
-
     # Add a stdout reporter to show progress in the terminal.
     p.add_reporter(neat.StdOutReporter(True))
     stats = neat.StatisticsReporter()
     p.add_reporter(stats)
     p.add_reporter(neat.Checkpointer(5))
 
-
     # Run for up to 50 generations.
     winner = p.run(main, 10)
     print(winner)
+
 
 
 if __name__ == "__main__":
