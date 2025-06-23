@@ -86,8 +86,9 @@ class Pipe:
     def __init__(self,x):
         self.x_top = x                               
         self.x_bottom = self.x_top
-        self.y_top = random.randrange(50,400) - PIPE.get_height()     # top_pipe top height          
-        self.y_bottom = self.y_top + self.PIPE_GAP + PIPE.get_height()   
+        self.y_top = random.randrange(50,400) - PIPE.get_height()     # top_pipe top height    
+        self.top_edge =  self.y_top + PIPE.get_height()                # top pipe bottom height
+        self.y_bottom = self.y_top + self.PIPE_GAP + PIPE.get_height()    # bottom pipe top height
         self.passed = False    
 
     def move(self):
@@ -115,13 +116,15 @@ class Pipe:
         win.blit(self.PIPE_BOTTOM,(self.x_bottom,self.y_bottom))
 
 
-def draw_canvas(bird,pipes,base):
+def draw_canvas(birds,pipes,base):
     win.fill((0,0,0))
     win.blit(BG,(0,0))
     for pipe in pipes:
         Pipe.draw(pipe)
 
-    Bird.draw(bird)
+    for bird in birds:
+        Bird.draw(bird)
+
     Base.draw(base)
     
 
@@ -135,21 +138,26 @@ pygame.init()
 def main(genomes,config):
     
     running = True
-    bird = Bird(200,200)
     pipes = [Pipe(600)]
     pipe_distance = 100
-    base = Base(0)             
-    nets = []
+    base = Base(0)
 
-    for genomeId , genome in genomes:
-        net = neat.nn.FeedForwardNetwork.creat(genome,config)
+    nets = []
+    birds= []
+    gene = [] 
+    for genome_id, genome in genomes:
+        # genome.fitness = 4.0
+        net = neat.nn.FeedForwardNetwork.create(genome, config)
         nets.append(net)
+        birds.append(Bird(250,400))
+        genome.fitness = 0
+        gene.append(genome)
+
+
 
     clock = pygame.time.Clock()
 
-    current_pipe_index = 0
-
-    while running:
+    while running  and len(birds) > 0:
 
         clock.tick(30)     # frames per second 
         
@@ -158,42 +166,55 @@ def main(genomes,config):
             if event.type == pygame.QUIT:
                 running = False
 
-
-        keys = pygame.key.get_pressed()
-
-        if keys[pygame.K_UP]:
-            bird.jump()
-
-        if keys[pygame.K_RIGHT]:
-            bird.move_right()
-
-
         add_pipe = False
         remove_pipes = []
+        dead_birds =[]
+        pipe_ind = 0
+
+        if len(birds) > 0:
+            if len(pipes) > 1 and birds[0].x > pipes[0].x_top + pipes[0].PIPE_TOP.get_width():  
+                pipe_ind = 1                                                                 
+
+        for id, bird in enumerate(birds):
+            gene[id].fitness += 0.1
+
+            output = nets[birds.index(bird)].activate((bird.y, abs(bird.y - pipes[pipe_ind].top_edge), abs(bird.y - pipes[pipe_ind].y_bottom)))
+
+            if output[0] > 0.5:  
+                bird.jump()
 
         for pipe in pipes:
-            if pipe.x_top + pipe.PIPE_TOP.get_width() < 0:
-                remove_pipes.append(pipe)
+            for id ,bird in enumerate(birds):
+                pipe.move()
+                if pipe.x_top + pipe.PIPE_TOP.get_width() < 0:
+                    remove_pipes.append(pipe)
 
-            if not pipe.passed and bird.x > pipe.x_top:
-                pipe.passed = True
-                add_pipe = True
-            
-            pipe.move()
-            if(pipe.collition(bird)):
-                print("collition")
-                # give negative points
+                if not pipe.passed and birds[id].x > pipe.x_top:
+                    pipe.passed = True
+                    add_pipe = True
+                    gene[id].fitness += 5
+                
+                if(pipe.collition(bird)) or bird.y < 0 or bird.y > 700:
+                    print(birds,"\n",bird)
+                    dead_birds.append(id)
+                    gene[id].fitness -= 5
+
+        
+        for i in reversed(dead_birds):   # removing collide birds after collition checking loop
+            birds.pop(i)
+            nets.pop(i)
+            gene.pop(i)         
 
         if add_pipe:
             pipes.append(Pipe(500))  # new pipe from right
 
         for r in remove_pipes:
-            pipes.remove(r)
+            if r in pipes:
+                pipes.remove(r)
 
-        bird.move()
         base.move()
 
-        draw_canvas(bird,pipes,base)
+        draw_canvas(birds,pipes,base)
         dataVisualization()
         pygame.display.update()  
     
@@ -215,18 +236,15 @@ def run():
 
 
     # Add a stdout reporter to show progress in the terminal.
-    # p.add_reporter(neat.StdOutReporter(True))
-    # stats = neat.StatisticsReporter()
-    # p.add_reporter(stats)
-    # p.add_reporter(neat.Checkpointer(5))
+    p.add_reporter(neat.StdOutReporter(True))
+    stats = neat.StatisticsReporter()
+    p.add_reporter(stats)
+    p.add_reporter(neat.Checkpointer(5))
 
 
     # Run for up to 50 generations.
-    winner = p.run(main, 50)
+    winner = p.run(main, 10)
     print(winner)
-
-    
-
 
 
 if __name__ == "__main__":
