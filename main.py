@@ -15,7 +15,7 @@ GEN = 0
 class Bird:
 
     VELOCITY = -10
-    MAX_ROTATION = 35
+    MAX_ROTATION = 25
     
     def __init__(self,x,y):
         self.x = x
@@ -27,13 +27,20 @@ class Bird:
         self.imgs = BIRDS
         self.animation_frame = 0
         self.img = self.imgs[0]
+        self.angle = 0
 
     def jump(self):
+        # self.angle = 0
         self.velocity = -12
 
     def move(self):
         self.velocity += self.gravity                  # acceleration 
         self.y += self.velocity
+        if self.velocity < 0:
+            self.angle = min(self.angle + 5, self.MAX_ROTATION)
+        else:
+            self.angle = max(self.angle - 3, -90)
+        # self.img = pygame.transform.rotate(self.img,self.MAX_ROTATION)
 
 
     def get_mask(self):
@@ -49,7 +56,14 @@ class Bird:
 
         self.move()
 
-        win.blit(self.img,(self.x, self.y))
+        # win.blit(self.img,(self.x, self.y))
+
+        rotated_img = pygame.transform.rotate(self.img, self.angle)
+        new_rect = rotated_img.get_rect(center=self.img.get_rect(topleft=(self.x, self.y)).center)
+
+        win.blit(rotated_img, new_rect.topleft)
+
+
 
 class Base:
     Y_TOP = 700
@@ -288,7 +302,7 @@ def main(genomes,config):
                     gene[id].fitness -= 5
 
         for i in reversed(dead_birds):   # removing collide birds after collition checking loop
-            if len(dead_birds) > 0:
+            if len(birds) > 0:
                 birds.pop(i)
             nets.pop(i)
             gene.pop(i)         
@@ -323,10 +337,10 @@ def run():
     p = neat.Population(config)
 
     # Add a stdout reporter to show progress in the terminal.
-    p.add_reporter(neat.StdOutReporter(True))
-    stats = neat.StatisticsReporter()
-    p.add_reporter(stats)
-    p.add_reporter(neat.Checkpointer(5))
+    # p.add_reporter(neat.StdOutReporter(True))
+    # stats = neat.StatisticsReporter()
+    # p.add_reporter(stats)
+    # p.add_reporter(neat.Checkpointer(5))
 
     # Run for up to 50 generations.
     winner = p.run(main, 10)
