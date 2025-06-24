@@ -8,8 +8,10 @@ BIRDS = [pygame.transform.scale2x(pygame.image.load(os.path.join("imgs","bird1.p
 PIPE = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs","pipe.png")))
 BASE = pygame.image.load(os.path.join('imgs','base.png'))
 BG = pygame.transform.scale(pygame.image.load(os.path.join("imgs","bg.png")),(500,800))
+NODESIMG = pygame.transform.smoothscale(pygame.image.load(os.path.join("imgs","nodes.png")),(500,281))
 win  = pygame.display.set_mode((WIN_WIDTH,WIN_HEIGHT))
 GEN = 0
+
 class Bird:
 
     VELOCITY = -10
@@ -82,7 +84,7 @@ class Pipe:
     def __init__(self,x):
         self.x_top = x                               
         self.x_bottom = self.x_top
-        self.y_top = random.randrange(100,500) - PIPE.get_height()     # top_pipe top height    
+        self.y_top = random.randrange(100,450) - PIPE.get_height()     # top_pipe top height    
         self.top_edge =  self.y_top + PIPE.get_height()                # top pipe bottom height
         self.y_bottom = self.y_top + self.PIPE_GAP + PIPE.get_height()    # bottom pipe top height
         self.passed = False    
@@ -124,13 +126,13 @@ def draw_canvas(birds,pipes,base):
     Base.draw(base)
     
 
-def dataVisualization(birds,best):
+def dataVisualization(birds,best,inputs):
     canvas = pygame.Surface((500, 800),pygame.SRCALPHA)
 
     height = canvas.get_height()
     width = canvas.get_width()
-    top_color = (21,21,32)
-    bottom_color =(36, 39, 49)
+    top_color = (41, 3, 70)
+    bottom_color =(54, 26, 75)
 
     for y in range(height):
         rotation = y / height
@@ -139,48 +141,67 @@ def dataVisualization(birds,best):
         b = int(top_color[2] * (1 - rotation) + bottom_color[2] * rotation)
         pygame.draw.line(canvas, (r, g, b), (0, y), (width, y))
     
-    # canvas.fill((40,43,44))
 
-    data_canvas = pygame.Surface((500, 800),pygame.SRCALPHA)
-
-    weight_links = pygame.Surface((200,3), pygame.SRCALPHA)
-    weight_links.fill((255,255,255))
 
     divs = pygame.Surface((450,50))
     divs.fill((37,37,56))
 
-    rotated_surf1 = pygame.transform.rotate(weight_links, -30)
-    rotated_surf2 = pygame.transform.rotate(weight_links, 30)
-    
-    font = pygame.font.SysFont("consolas", 24)
-    text_surface = font.render("FLAPPY", True, (255, 255, 255))
-
-
-
-  
-    data_canvas.blit(rotated_surf1,(150,300))
-    data_canvas.blit(weight_links,(150,400))
-    data_canvas.blit(rotated_surf2,(150,400))
-
-    data_canvas.blit(divs,(25,25))
-    data_canvas.blit(divs,(25,100))
-    data_canvas.blit(divs,(25,175))
-
-    pygame.draw.circle(data_canvas, (130, 57, 255), (150, 300), 32)
-    pygame.draw.circle(data_canvas, (206, 93, 255), (150, 400), 32)
-    pygame.draw.circle(data_canvas, (255, 81, 81), (150, 500), 32)
-    pygame.draw.circle(data_canvas, (147, 235, 65), (350, 400), 32)
 
     
-    win.blit(canvas,(500,0))
-    win.blit(data_canvas,(500,0))
+    font1 = pygame.font.SysFont("Gotham", 45)
+
+    font2 = pygame.font.SysFont("Cascadia Mono", 45)
+    font3 = pygame.font.SysFont("Circular Spotify", 45)
+    text_gen = font1.render(f"GEN : {GEN}", True, (255, 255, 255))
+    text_birds = font2.render(f"Birds : {len(birds)}", True, (255, 255, 255))
+    text_max_fitness = font3.render(f"Max-fitness : {best.fitness:.3f}", True, (255, 255, 255))
+
+    pygame.draw.rect(canvas, (133, 36, 208), (25,20,450,60), border_radius=10)
+    pygame.draw.rect(canvas, (154, 38, 243), (25,100,450,60), border_radius=10)
+    pygame.draw.rect(canvas, (108, 0, 190), (25,180,450,60), border_radius=10)
+
+    canvas.blit(text_gen,(50,36))
+    canvas.blit(text_birds,(50,118))
+    canvas.blit(text_max_fitness,(50,196))
+    canvas.blit(NODESIMG,(0,300))
 
 
-
-    no_of_birds = len(birds)
     
-    # for conn_key, conn in best.connections.items():
-    #     print(f"Connection from {conn_key[0]} to {conn_key[1]} has weight: {conn.weight}")
+
+    font1 = pygame.font.SysFont("Gotham", 35)
+
+    WEIGHTS = []
+
+    for conn_key, conn in best.connections.items():
+        WEIGHTS.append(f"{conn.weight:.2f}")
+        # print(f"Connection from {conn_key[0]} to {conn_key[1]} has weight: {conn.weight}")
+    while len(WEIGHTS) < 3:
+        WEIGHTS.append("0.00")
+
+
+    text_input1 = font1.render(f"{inputs[0]:.1f}", True, (255, 255, 255))
+    text_input2 = font1.render(f"{inputs[1]:.1f}", True, (255, 255, 255))
+    text_input3 = font1.render(f"{inputs[2]:.1f}", True, (255, 255, 255))
+    text_output = font1.render(f"{inputs[3]:.1f}", True, (255, 255, 255))
+
+    # WEIGHTS_1, WEIGHTS_2, WEIGHTS_3 = WEIGHTS
+
+    text_w1 = font1.render(WEIGHTS[0] , True, (255, 255, 255))
+    text_w2 = font1.render(WEIGHTS[1], True, (255, 255, 255))
+    text_w3 = font1.render(WEIGHTS[2] , True, (255, 255, 255))
+
+    canvas.blit(text_w1,(168,345))
+    canvas.blit(text_w2,(168,438))
+    canvas.blit(text_w3,(168,531))
+
+    canvas.blit(text_input1,(47,345))
+    canvas.blit(text_input2,(48,438))
+    canvas.blit(text_input3,(45,531))
+    canvas.blit(text_output,(415,534))
+
+
+    win.blit(canvas,(500,0))    
+
 
     # for node_key, node in best.nodes.items():
     #     print(f"Node {node_key} bias: {node.bias}, activation: {node.activation}")
@@ -189,6 +210,9 @@ def dataVisualization(birds,best):
 pygame.init()
 
 def main(genomes,config):
+    
+    global GEN
+    GEN += 1
     
     PIPE_DIFF = 540
     running = True
@@ -199,6 +223,8 @@ def main(genomes,config):
     birds= []
     gene = [] 
     best = None;
+    best_bird_index = 0;
+    inputs = [];
 
     for genome_id, genome in genomes:
         net = neat.nn.FeedForwardNetwork.create(genome, config)
@@ -209,6 +235,8 @@ def main(genomes,config):
 
         if best is None or genome.fitness > best.fitness:
             best = genome
+            best_bird_index = gene.index(genome)
+        
 
     for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -219,8 +247,6 @@ def main(genomes,config):
     clock = pygame.time.Clock()
 
     while running  and len(birds) > 0:
-        global GEN
-        GEN += 1
 
         clock.tick(30)     # frames per second 
                 
@@ -235,9 +261,11 @@ def main(genomes,config):
 
         for id, bird in enumerate(birds):
             gene[id].fitness += 0.1
-
+            
             output = nets[birds.index(bird)].activate((bird.y, abs(bird.y - pipes[pipe_ind].top_edge), abs(bird.y - pipes[pipe_ind].y_bottom)))
-
+            
+            if(id == best_bird_index):
+                inputs = [bird.y, abs(bird.y - pipes[pipe_ind].top_edge), abs(bird.y - pipes[pipe_ind].y_bottom),output[0]]
             if output[0] > 0.5:  
                 bird.jump()
 
@@ -260,7 +288,8 @@ def main(genomes,config):
                     gene[id].fitness -= 5
 
         for i in reversed(dead_birds):   # removing collide birds after collition checking loop
-            birds.pop(i)
+            if len(dead_birds) > 0:
+                birds.pop(i)
             nets.pop(i)
             gene.pop(i)         
 
@@ -275,7 +304,7 @@ def main(genomes,config):
 
     
         draw_canvas(birds,pipes,base,)
-        dataVisualization(birds,best)
+        dataVisualization(birds,best,inputs)
 
         pygame.display.update()  
     
