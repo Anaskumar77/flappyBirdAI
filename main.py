@@ -98,7 +98,7 @@ class Pipe:
     def __init__(self,x):
         self.x_top = x                               
         self.x_bottom = self.x_top
-        self.y_top = random.randrange(100,450) - PIPE.get_height()     # top_pipe top height    
+        self.y_top = random.randrange(100,470) - PIPE.get_height()     # top_pipe top height    
         self.top_edge =  self.y_top + PIPE.get_height()                # top pipe bottom height
         self.y_bottom = self.y_top + self.PIPE_GAP + PIPE.get_height()    # bottom pipe top height
         self.passed = False    
@@ -228,7 +228,7 @@ def main(genomes,config):
     global GEN
     GEN += 1
     
-    PIPE_DIFF = 540
+    PIPE_DIFF = 530
     running = True
     pipes = [Pipe(PIPE_DIFF)]
     base = Base(0)
@@ -343,7 +343,7 @@ def run():
     # p.add_reporter(neat.Checkpointer(5))
 
     # Run for up to 50 generations.
-    winner = p.run(main, 10)
+    winner = p.run(main, 50)
     print(winner)
 
 
